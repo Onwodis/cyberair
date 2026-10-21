@@ -65,7 +65,8 @@ export async function POST(req: Request) {
               headers['content-security-policy'] ||
               headers['content-security-policy-report-only'];
             const cspValue = Array.isArray(csp) ? csp.join('; ') : csp || null;
-            // Isolate script-src to check for dangerous execution permissions
+           
+
             const scriptSrcSection =
               (cspValue?.match(/script-src[^;]+/i) || [])[0] || '';
             const cspUnsafe = scriptSrcSection

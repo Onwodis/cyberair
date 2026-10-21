@@ -65,9 +65,15 @@ export async function POST(req: Request) {
               headers['content-security-policy'] ||
               headers['content-security-policy-report-only'];
             const cspValue = Array.isArray(csp) ? csp.join('; ') : csp || null;
-            const cspUnsafe = cspValue
-              ? /'unsafe-inline'|'unsafe-eval'|\*/i.test(cspValue)
+            // Isolate script-src to check for dangerous execution permissions
+            const scriptSrcSection =
+              (cspValue?.match(/script-src[^;]+/i) || [])[0] || '';
+            const cspUnsafe = scriptSrcSection
+              ? /'unsafe-inline'|'unsafe-eval'|\*/i.test(scriptSrcSection)
               : false;
+            // const cspUnsafe = cspValue
+            //   ? /'unsafe-inline'|'unsafe-eval'|\*/i.test(cspValue)
+            //   : false;
 
             const hsts = headers['strict-transport-security'];
             const hstsValue = Array.isArray(hsts) ? hsts[0] : hsts || null;

@@ -204,7 +204,7 @@ export default function LandingPage() {
             SECURITY AUDITOR
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm">
-            Deep directive analysis, OWASP Top 10 mapping and
+            Deep analysis, OWASP Top 10 mapping and
             threat scenarios.
             <span className="block sm:inline text-emerald-400 mt-1 sm:ml-2">
               ({scansLeft} scans remaining)

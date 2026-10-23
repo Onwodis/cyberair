@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Eye, EyeOff, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import CyberBackground from '../../components/CyberBackground';
+import { useIsDark } from '../../components/useIsDark';
 
 export default function LoginClient() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,7 @@ export default function LoginClient() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const isDark = useIsDark();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +41,11 @@ export default function LoginClient() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 font-mono flex flex-col items-center justify-center p-6 relative overflow-hidden scanlines">
+    <main
+      className={`min-h-screen bg-slate-950 text-slate-100 font-mono flex flex-col items-center justify-center p-6 relative overflow-hidden scanlines ${
+        isDark ? 'app-wash-dark' : 'app-wash-light'
+      }`}
+    >
       <CyberBackground />
 
       <motion.div

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import './globals.css';
+import Providers from './components/Providers';
+import Preloader from './components/Preloader';
 import ThemeToggle from './components/ThemeToggle';
 
 const APP_NAME = 'cyberAir';
@@ -91,22 +93,21 @@ export default function RootLayout({
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   };
 
-  // Pre-paint theme resolution to avoid a flash of the wrong palette.
-  const themeScript = `(function(){try{var t=localStorage.getItem('cyberair_theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
-
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body className="bg-slate-950 text-slate-100 font-mono antialiased min-h-screen selection:bg-cyan-500 selection:text-slate-950">
-        {children}
-        <ThemeToggle />
-        <Toaster position="top-right" richColors />
+        <Providers>
+          <Preloader />
+          {children}
+          <ThemeToggle />
+          <Toaster position="top-right" richColors />
+        </Providers>
       </body>
     </html>
   );

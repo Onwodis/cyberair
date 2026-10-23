@@ -24,6 +24,7 @@ import CyberBackground from './CyberBackground';
 import Reveal from './Reveal';
 import ScoreGauge from './ScoreGauge';
 import AuditCharts from './AuditCharts';
+import { useIsDark } from './useIsDark';
 
 const FREE_LIMIT = 15;
 
@@ -54,6 +55,7 @@ export default function LandingClient() {
   const [redeemSuccess, setRedeemSuccess] = useState('');
 
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const isDark = useIsDark();
 
   useEffect(() => {
     const saved = localStorage.getItem('sec_scans_remaining');
@@ -152,7 +154,11 @@ export default function LandingClient() {
   const meta = audit?.meta;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 font-mono relative flex flex-col scanlines selection:bg-cyan-500 selection:text-slate-950">
+    <main
+      className={`min-h-screen bg-slate-950 text-slate-100 font-mono relative flex flex-col scanlines selection:bg-cyan-500 selection:text-slate-950 ${
+        isDark ? 'app-wash-dark' : 'app-wash-light'
+      }`}
+    >
       <CyberBackground />
 
       {/* Navbar */}

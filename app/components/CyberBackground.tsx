@@ -1,13 +1,23 @@
 'use client';
 
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
+import ParticleField from './ParticleField';
+
 /**
- * Fixed, non-interactive cyber ambience: a 3D perspective grid, drifting glow
- * orbs and an animated scanline overlay. Pure CSS (see globals.css) so it costs
- * nothing on the main thread and respects prefers-reduced-motion.
+ * Fixed, non-interactive cyber ambience: a cursor-reactive particle
+ * constellation, a 3D perspective grid, drifting glow orbs and a scanline
+ * overlay. Recolours with the theme.
  */
 export default function CyberBackground() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = !mounted || resolvedTheme !== 'light';
+
   return (
     <>
+      <ParticleField isDark={isDark} />
       <div className="cyber-grid" aria-hidden />
       <div
         className="cyber-orb"

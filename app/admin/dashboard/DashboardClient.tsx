@@ -32,6 +32,7 @@ import {
 import { toast } from 'sonner';
 import CyberBackground from '../../components/CyberBackground';
 import Reveal from '../../components/Reveal';
+import { useIsDark } from '../../components/useIsDark';
 import {
   QueryBars,
   AttackOutcomeChart,
@@ -64,6 +65,7 @@ export default function DashboardClient() {
 
   const reportRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const isDark = useIsDark();
 
   const fetchStats = async () => {
     try {
@@ -230,7 +232,11 @@ export default function DashboardClient() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 font-mono p-4 sm:p-8 space-y-6 sm:space-y-8 relative scanlines">
+    <main
+      className={`min-h-screen bg-slate-950 text-slate-100 font-mono p-4 sm:p-8 space-y-6 sm:space-y-8 relative scanlines ${
+        isDark ? 'app-wash-dark' : 'app-wash-light'
+      }`}
+    >
       <CyberBackground />
 
       {/* Header */}

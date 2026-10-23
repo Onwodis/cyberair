@@ -7,22 +7,24 @@ const SECRET_KEY = new TextEncoder().encode(
 );
 
 /**
- * Edge proxy: applies a hardened, statically-compatible Content-Security-Policy
- * and enforces the admin portal session.
+ * Edge proxy: issues a per-request nonce-based Content-Security-Policy (so the
+ * app earns a clean grade on its own scanner) and enforces the admin session.
  *
- * Note on `script-src 'unsafe-inline'`: Next.js statically prerenders these
- * pages and emits small inline hydration scripts at build time, so there is no
- * per-request nonce to bind them to. This is the honest, common trade-off for a
- * static Next app. The rest of the policy is strict — no `unsafe-eval` (prod),
- * `object-src 'none'`, locked `base-uri`/`form-action`, framing denied, and
- * insecure requests upgraded.
+ * `script-src 'self' 'nonce-…' 'strict-dynamic'` means only scripts carrying
+ * this request's nonce (and those they load) execute — inline injection is
+ * dead. Next.js stamps the nonce onto its framework/bundle scripts
+ * automatically; next-themes receives it via its `nonce` prop. `unsafe-eval`
+ * is dev-only (React debugging) and never present in production.
  */
 export async function proxy(req: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const isDev = process.env.NODE_ENV === 'development';
 
   const csp = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''};
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${
+    isDev ? " 'unsafe-eval'" : ''
+  };
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self' data:;
@@ -35,6 +37,10 @@ export async function proxy(req: NextRequest) {
   `
     .replace(/\s{2,}/g, ' ')
     .trim();
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('content-security-policy', csp);
 
   // Admin portal gate (page routes; API routes self-verify the JWT).
   const path = req.nextUrl.pathname;
@@ -53,7 +59,7 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  const response = NextResponse.next();
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('content-security-policy', csp);
   response.headers.set('x-frame-options', 'DENY');
   response.headers.set('x-content-type-options', 'nosniff');

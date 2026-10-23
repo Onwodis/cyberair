@@ -33,6 +33,16 @@ export interface SecurityCheck {
   impact: number; // points this check costs the score in its current state
 }
 
+export interface SeoCheck {
+  id: string;
+  name: string;
+  status: 'PASS' | 'WARN' | 'FAIL';
+  value: string | null;
+  finding: string;
+  explanation: string;
+  recommendation: string;
+}
+
 export interface AnalyzerResult {
   url: string;
   finalUrl: string;
@@ -40,6 +50,9 @@ export interface AnalyzerResult {
   grade: string;
   uiUxScore: number;
   uiUxGrade: string;
+  seoScore: number;
+  seoGrade: string;
+  seo: SeoCheck[];
   results: SecurityCheck[];
   meta: {
     statusCode: number | null;
@@ -684,6 +697,15 @@ export async function analyzeTarget(
     vulnerable: checks.filter((c) => c.status === 'VULNERABLE').length,
   };
 
+  // ---- SEO & discoverability ----
+  const seo = buildSeoChecks(htmlBody, h);
+  let seoPoints = 100;
+  for (const s of seo) {
+    if (s.status === 'FAIL') seoPoints -= 12;
+    else if (s.status === 'WARN') seoPoints -= 5;
+  }
+  const seoScore = Math.max(0, Math.min(100, seoPoints));
+
   return {
     url: sanitizedUrl,
     finalUrl: r.finalUrl,
@@ -691,6 +713,9 @@ export async function analyzeTarget(
     grade: gradeFor(score),
     uiUxScore,
     uiUxGrade: gradeFor(uiUxScore),
+    seoScore,
+    seoGrade: gradeFor(seoScore),
+    seo,
     results: checks,
     meta: {
       statusCode: r.statusCode,

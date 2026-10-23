@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { Toaster } from 'sonner';
 import './globals.css';
 import Providers from './components/Providers';
@@ -76,11 +77,12 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
@@ -98,11 +100,12 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
+          nonce={nonce}
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body className="bg-slate-950 text-slate-100 font-mono antialiased min-h-screen selection:bg-cyan-500 selection:text-slate-950">
-        <Providers>
+        <Providers nonce={nonce}>
           <Preloader />
           {children}
           <ThemeToggle />

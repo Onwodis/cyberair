@@ -3,8 +3,8 @@ const nextConfig = {
   experimental: {
     agentFeedback: true,
   },
-  cacheComponents: true,
-  partialPrefetching: true,
+  // cacheComponents is intentionally disabled: the CSP uses a per-request nonce,
+  // which requires standard dynamic rendering of the pages.
   poweredByHeader: false,
   turbopack: {
     rules: {

@@ -63,6 +63,14 @@ export default function DashboardClient() {
   const [attackLoading, setAttackLoading] = useState(false);
   const [attackResult, setAttackResult] = useState<any>(null);
 
+  // Injection & input-handling probe
+  const [probeUrl, setProbeUrl] = useState('');
+  const [probeParam, setProbeParam] = useState('id');
+  const [probeRounds, setProbeRounds] = useState(2);
+  const [probeAuthorized, setProbeAuthorized] = useState(false);
+  const [probeLoading, setProbeLoading] = useState(false);
+  const [probeResult, setProbeResult] = useState<any>(null);
+
   const reportRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const isDark = useIsDark();
@@ -207,6 +215,43 @@ export default function DashboardClient() {
       toast.error('Network error during simulation.');
     } finally {
       setAttackLoading(false);
+    }
+  };
+
+  const handleRunProbe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!probeUrl) {
+      toast.error('Enter a target URL you are authorized to test.');
+      return;
+    }
+    if (!probeAuthorized) {
+      toast.error('Confirm authorization before running the probe.');
+      return;
+    }
+    setProbeLoading(true);
+    setProbeResult(null);
+    try {
+      const res = await fetch('/api/test-runner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUrl: probeUrl,
+          paramName: probeParam,
+          rounds: probeRounds,
+          authorized: probeAuthorized,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProbeResult(data);
+        toast.success(`Probe complete — verdict: ${data.summary?.verdict}`);
+      } else {
+        toast.error(data.error || 'Probe failed.');
+      }
+    } catch {
+      toast.error('Network error during probe.');
+    } finally {
+      setProbeLoading(false);
     }
   };
 
@@ -466,6 +511,168 @@ export default function DashboardClient() {
                   </div>
                   <AttackOutcomeChart stats={attackResult} />
                 </div>
+              </motion.div>
+            )}
+          </div>
+        </Reveal>
+
+        {/* Injection & input-handling probe */}
+        <Reveal>
+          <div className="bg-slate-900/70 border border-purple-900/50 p-6 rounded-2xl shadow-2xl backdrop-blur-md space-y-5">
+            <div className="flex items-center gap-2 text-purple-300 font-bold text-sm">
+              <AlertOctagon className="w-5 h-5 text-purple-400" />
+              <h2>Injection &amp; Input-Handling Probe</h2>
+            </div>
+            <p className="text-[11px] text-slate-400 font-sans max-w-3xl">
+              Non-destructive detection harness: sends a small, bounded set of
+              read-only probes (SQLi, XSS, template injection, path traversal,
+              oversized/typed input) and infers vulnerabilities from the
+              target&apos;s responses. It never sends data-destroying payloads
+              and never floods. Authorized targets only.
+            </p>
+
+            <form onSubmit={handleRunProbe} className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              <div className="lg:col-span-2">
+                <label className="text-xs text-slate-400 block mb-1">
+                  Authorized Target URL
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
+                    <Globe className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="url"
+                    placeholder="https://your-platform.com/search"
+                    value={probeUrl}
+                    onChange={(e) => setProbeUrl(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-purple-200 focus:outline-none focus:border-purple-500 text-xs"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">
+                  Query Parameter
+                </label>
+                <input
+                  type="text"
+                  placeholder="id"
+                  value={probeParam}
+                  onChange={(e) => setProbeParam(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-purple-200 focus:outline-none focus:border-purple-500 text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">
+                  Rounds: <span className="text-purple-300">{probeRounds}</span>
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={5}
+                  step={1}
+                  value={probeRounds}
+                  onChange={(e) => setProbeRounds(Number(e.target.value))}
+                  className="w-full accent-purple-500 mt-3 cursor-pointer"
+                />
+              </div>
+
+              <label className="lg:col-span-3 flex items-start gap-2 text-[11px] text-slate-300 font-sans bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                <input
+                  type="checkbox"
+                  checked={probeAuthorized}
+                  onChange={(e) => setProbeAuthorized(e.target.checked)}
+                  className="mt-0.5 accent-emerald-500 cursor-pointer"
+                />
+                <span>
+                  I confirm I own this target or have explicit written
+                  authorization to run security probes against it.
+                </span>
+              </label>
+              <div className="flex items-end">
+                <motion.button
+                  whileHover={{ scale: probeAuthorized ? 1.02 : 1 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={probeLoading || !probeAuthorized}
+                  className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-bold py-3 rounded-xl transition-all text-xs shadow-lg shadow-purple-600/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {probeLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" /> PROBING…
+                    </>
+                  ) : (
+                    <>
+                      <AlertOctagon className="w-4 h-4" /> RUN PROBE
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            </form>
+
+            {probeResult && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  <ResultTile label="Probes Sent" value={probeResult.summary.probesSent} icon={<Gauge className="w-4 h-4" />} color="text-cyan-400" />
+                  <ResultTile label="Vulns Found" value={probeResult.summary.vulnerabilitiesFound} icon={<ShieldCheck className="w-4 h-4" />} color={probeResult.summary.vulnerabilitiesFound ? 'text-rose-400' : 'text-emerald-400'} />
+                  <ResultTile label="5xx Errors" value={probeResult.summary.serverErrors} icon={<XCircle className="w-4 h-4" />} color="text-amber-400" />
+                  <ResultTile label="Net Errors" value={probeResult.summary.networkErrors} icon={<Timer className="w-4 h-4" />} color="text-slate-300" />
+                  <ResultTile label="Avg Latency" value={`${probeResult.summary.avgLatencyMs}ms`} icon={<Activity className="w-4 h-4" />} color="text-purple-400" />
+                </div>
+
+                <div
+                  className={`flex items-center gap-2 rounded-xl border p-3 text-xs font-sans ${
+                    probeResult.summary.verdict === 'CLEAN'
+                      ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
+                      : probeResult.summary.verdict === 'LOW'
+                      ? 'bg-amber-950/30 border-amber-800 text-amber-300'
+                      : 'bg-rose-950/40 border-rose-800 text-rose-300'
+                  }`}
+                >
+                  <AlertOctagon className="w-4 h-4 shrink-0" />
+                  Verdict: <strong>{probeResult.summary.verdict}</strong>
+                  {probeResult.summary.verdict === 'CLEAN'
+                    ? ' — no injection indicators detected in the sampled responses.'
+                    : ' — the target reflected injection indicators; review the findings below.'}
+                </div>
+
+                {probeResult.findings?.length > 0 && (
+                  <div className="space-y-2">
+                    {probeResult.findings.map((f: any) => (
+                      <div
+                        key={f.type}
+                        className="bg-slate-950/60 border border-rose-800/50 rounded-xl p-3 space-y-1"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-100">
+                            {f.type}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              f.severity === 'CRITICAL'
+                                ? 'bg-purple-950 text-purple-300 border-purple-700'
+                                : f.severity === 'HIGH'
+                                ? 'bg-rose-950 text-rose-300 border-rose-700'
+                                : f.severity === 'MEDIUM'
+                                ? 'bg-amber-950 text-amber-300 border-amber-700'
+                                : 'bg-sky-950 text-sky-300 border-sky-700'
+                            }`}
+                          >
+                            {f.severity}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-rose-300 font-sans">{f.note}</p>
+                        <p className="text-[11px] text-emerald-100/90 font-sans">
+                          <span className="font-bold text-emerald-400">Fix: </span>
+                          {f.remediation}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </div>
@@ -821,6 +1028,11 @@ function TargetSummary({ title, data }: { title: string; data: any }) {
         <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
           {data.meta?.responseTimeMs ?? 0}ms
         </span>
+        {typeof data.seoScore === 'number' && (
+          <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+            SEO {data.seoScore}/100
+          </span>
+        )}
       </div>
     </div>
   );

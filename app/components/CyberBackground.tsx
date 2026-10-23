@@ -15,6 +15,11 @@ export default function CyberBackground() {
   useEffect(() => setMounted(true), []);
   const isDark = !mounted || resolvedTheme !== 'light';
 
+  // Cool palette in dark mode, warm palette in light mode.
+  const orb1 = isDark ? 'rgba(34,211,238,0.18)' : 'rgba(234,160,72,0.28)';
+  const orb2 = isDark ? 'rgba(168,85,247,0.16)' : 'rgba(244,114,92,0.24)';
+  const orb3 = isDark ? 'rgba(52,211,153,0.12)' : 'rgba(217,160,102,0.22)';
+
   return (
     <>
       <ParticleField isDark={isDark} />
@@ -27,7 +32,7 @@ export default function CyberBackground() {
           height: 420,
           top: '-80px',
           left: '-80px',
-          background: 'rgba(34,211,238,0.18)',
+          background: orb1,
         }}
       />
       <div
@@ -38,7 +43,7 @@ export default function CyberBackground() {
           height: 360,
           bottom: '-60px',
           right: '-40px',
-          background: 'rgba(168,85,247,0.16)',
+          background: orb2,
           animationDelay: '3s',
         }}
       />
@@ -50,7 +55,7 @@ export default function CyberBackground() {
           height: 300,
           top: '40%',
           right: '20%',
-          background: 'rgba(52,211,153,0.12)',
+          background: orb3,
           animationDelay: '6s',
         }}
       />

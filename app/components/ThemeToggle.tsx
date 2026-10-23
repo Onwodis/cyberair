@@ -11,13 +11,17 @@ export default function ThemeToggle() {
   useEffect(() => setMounted(true), []);
 
   const isDark = resolvedTheme !== 'light';
+  // Until mounted, server and client must agree — use a neutral, static label.
+  const label = !mounted
+    ? 'Toggle theme'
+    : `Switch to ${isDark ? 'light' : 'dark'} mode`;
 
   return (
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-      title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      aria-label={label}
+      title={label}
       className="no-print fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full border border-slate-700 bg-slate-900/80 text-cyan-300 backdrop-blur-md shadow-xl hover:border-cyan-500 transition-all cursor-pointer"
     >
       {!mounted ? (

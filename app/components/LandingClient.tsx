@@ -19,6 +19,9 @@ import {
   Timer,
   ChevronRight,
   BarChart3,
+  Search,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import CyberBackground from './CyberBackground';
 import Reveal from './Reveal';
@@ -191,7 +194,8 @@ export default function LandingClient() {
           style={{ perspective: 1000 }}
           className="hidden md:flex items-center px-4 py-1 rounded-full bg-gradient-to-r from-cyan-950/80 to-emerald-950/80 border border-cyan-500/40 text-[11px] text-cyan-300 glow-border cursor-default"
         >
-          Built by <span className="text-white font-bold ml-1">Samuel Onwodi</span>
+          Built by{' '}
+          <span className="text-slate-100 font-bold ml-1">Samuel Onwodi</span>
         </motion.div>
 
         <div className="hidden sm:flex items-center gap-4 text-xs">
@@ -553,6 +557,94 @@ export default function LandingClient() {
                 </Reveal>
               ))}
             </div>
+
+            {/* SEO & Discoverability */}
+            {audit.seo?.length > 0 && (
+              <div className="space-y-5 pt-2">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h2 className="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-2">
+                    <Search className="w-4 h-4" /> SEO &amp; Discoverability
+                  </h2>
+                  <span className="text-[11px] text-slate-400">
+                    Score:{' '}
+                    <strong
+                      className={
+                        audit.seoScore >= 80
+                          ? 'text-emerald-400'
+                          : audit.seoScore >= 50
+                          ? 'text-amber-400'
+                          : 'text-rose-400'
+                      }
+                    >
+                      {audit.seoScore}/100 ({audit.seoGrade})
+                    </strong>
+                  </span>
+                </div>
+
+                <Reveal>
+                  <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 bg-slate-900/70 border border-slate-800 p-6 rounded-2xl backdrop-blur-xl">
+                    <div className="flex items-center justify-center">
+                      <ScoreGauge
+                        score={audit.seoScore}
+                        grade={audit.seoGrade}
+                        label="SEO score"
+                        size={130}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 content-center">
+                      {audit.seo.map((s: any) => (
+                        <div
+                          key={s.id}
+                          className={`rounded-xl border p-3 space-y-1 ${
+                            s.status === 'PASS'
+                              ? 'bg-slate-950/60 border-emerald-800/50'
+                              : s.status === 'WARN'
+                              ? 'bg-slate-950/60 border-amber-800/60'
+                              : 'bg-slate-950/60 border-rose-800/60'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                              {s.status === 'PASS' ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : s.status === 'WARN' ? (
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                              ) : (
+                                <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                              )}
+                              {s.name}
+                            </span>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                s.status === 'PASS'
+                                  ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                                  : s.status === 'WARN'
+                                  ? 'bg-amber-950 text-amber-300 border-amber-800'
+                                  : 'bg-rose-950 text-rose-400 border-rose-800'
+                              }`}
+                            >
+                              {s.status}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                            {s.finding}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
+                            {s.explanation}
+                          </p>
+                          {s.status !== 'PASS' && (
+                            <p className="text-[10px] text-emerald-300/90 font-sans leading-relaxed">
+                              <span className="font-bold">Fix: </span>
+                              {s.recommendation}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
+            )}
           </div>
         )}
       </div>

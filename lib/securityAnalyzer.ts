@@ -729,3 +729,200 @@ export async function analyzeTarget(
     },
   };
 }
+
+/** Derives an SEO / discoverability audit from the HTML + response headers. */
+function buildSeoChecks(
+  html: string,
+  headers: http.IncomingHttpHeaders
+): SeoCheck[] {
+  const checks: SeoCheck[] = [];
+
+  const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1]?.trim();
+  const titleLen = title?.length || 0;
+  checks.push({
+    id: 'seo_title',
+    name: 'Title Tag',
+    status: title ? (titleLen >= 10 && titleLen <= 65 ? 'PASS' : 'WARN') : 'FAIL',
+    value: title ? `${titleLen} chars` : null,
+    finding: title
+      ? titleLen >= 10 && titleLen <= 65
+        ? `Title present (${titleLen} chars).`
+        : `Title length ${titleLen} is outside the ideal 10-65 characters.`
+      : 'No <title> tag found.',
+    explanation:
+      'The title is the clickable headline in Google results and browser tabs - the single biggest on-page SEO signal.',
+    recommendation:
+      'Add one unique, descriptive <title> of ~50-60 characters including the primary keyword.',
+  });
+
+  const desc = (html.match(
+    /<meta[^>]+name=["']description["'][^>]*content=["']([^"']*)["']/i
+  ) || [])[1];
+  const descLen = desc?.length || 0;
+  checks.push({
+    id: 'seo_description',
+    name: 'Meta Description',
+    status: desc ? (descLen >= 50 && descLen <= 160 ? 'PASS' : 'WARN') : 'FAIL',
+    value: desc ? `${descLen} chars` : null,
+    finding: desc
+      ? descLen >= 50 && descLen <= 160
+        ? `Meta description present (${descLen} chars).`
+        : `Description length ${descLen} is outside the ideal 50-160 characters.`
+      : 'No meta description found.',
+    explanation:
+      'The description is the snippet shown under the title in search results and strongly affects click-through rate.',
+    recommendation:
+      'Add a compelling meta description of 50-160 characters that summarises the page.',
+  });
+
+  const hasViewport = /<meta[^>]+name=["']viewport["']/i.test(html);
+  checks.push({
+    id: 'seo_viewport',
+    name: 'Mobile Viewport',
+    status: hasViewport ? 'PASS' : 'FAIL',
+    value: hasViewport ? 'present' : null,
+    finding: hasViewport
+      ? 'Responsive viewport meta present.'
+      : 'No viewport meta - the page is not declared mobile-friendly.',
+    explanation:
+      'Google uses mobile-first indexing; without a viewport tag the page renders zoomed-out on phones and loses rankings.',
+    recommendation:
+      'Add a viewport meta: width=device-width, initial-scale=1.',
+  });
+
+  const canonical = /<link[^>]+rel=["']canonical["']/i.test(html);
+  checks.push({
+    id: 'seo_canonical',
+    name: 'Canonical URL',
+    status: canonical ? 'PASS' : 'WARN',
+    value: canonical ? 'present' : null,
+    finding: canonical
+      ? 'Canonical link present.'
+      : 'No canonical link - duplicate-content signals may be split.',
+    explanation:
+      'A canonical tag tells search engines the preferred URL when the same content is reachable at several addresses.',
+    recommendation: 'Add a rel="canonical" link pointing to the preferred URL.',
+  });
+
+  const h1Count = (html.match(/<h1[\s>]/gi) || []).length;
+  checks.push({
+    id: 'seo_h1',
+    name: 'H1 Heading',
+    status: h1Count === 1 ? 'PASS' : h1Count === 0 ? 'FAIL' : 'WARN',
+    value: `${h1Count} found`,
+    finding:
+      h1Count === 1
+        ? 'Exactly one H1 heading.'
+        : h1Count === 0
+        ? 'No H1 heading found.'
+        : `${h1Count} H1 headings (one is recommended).`,
+    explanation:
+      'The H1 is the main on-page heading that tells users and crawlers what the page is about.',
+    recommendation:
+      'Use a single, descriptive H1 per page that reflects its primary topic.',
+  });
+
+  const langAttr = /<html[^>]+lang=["'][a-z-]+["']/i.test(html);
+  checks.push({
+    id: 'seo_lang',
+    name: 'HTML lang Attribute',
+    status: langAttr ? 'PASS' : 'WARN',
+    value: langAttr ? 'present' : null,
+    finding: langAttr
+      ? 'Document language declared.'
+      : 'No lang attribute on <html>.',
+    explanation:
+      'The lang attribute helps search engines and screen readers serve the right language and improves accessibility.',
+    recommendation: 'Set lang="en" (or the correct code) on the <html> element.',
+  });
+
+  const ogTitle = /<meta[^>]+property=["']og:title["']/i.test(html);
+  const ogImage = /<meta[^>]+property=["']og:image["']/i.test(html);
+  checks.push({
+    id: 'seo_opengraph',
+    name: 'Open Graph / Social Cards',
+    status: ogTitle && ogImage ? 'PASS' : ogTitle || ogImage ? 'WARN' : 'FAIL',
+    value:
+      [ogTitle && 'og:title', ogImage && 'og:image'].filter(Boolean).join(', ') ||
+      'none',
+    finding:
+      ogTitle && ogImage
+        ? 'Open Graph title and image present.'
+        : ogTitle || ogImage
+        ? 'Partial Open Graph tags - social previews will be incomplete.'
+        : 'No Open Graph tags - shared links show no rich preview.',
+    explanation:
+      'Open Graph tags control the title, description and image shown when your link is shared on social platforms.',
+    recommendation:
+      'Add og:title, og:description and og:image (plus a Twitter card) meta tags.',
+  });
+
+  const ld = /application\/ld\+json/i.test(html);
+  checks.push({
+    id: 'seo_structured',
+    name: 'Structured Data (JSON-LD)',
+    status: ld ? 'PASS' : 'WARN',
+    value: ld ? 'present' : null,
+    finding: ld
+      ? 'Structured data detected.'
+      : 'No JSON-LD structured data found.',
+    explanation:
+      'Schema.org structured data unlocks rich results (ratings, FAQs, breadcrumbs) and helps engines understand the page.',
+    recommendation:
+      'Add relevant schema.org JSON-LD (e.g. Organization, Product, Article).',
+  });
+
+  const xRobots = headers['x-robots-tag'];
+  const xRobotsStr = Array.isArray(xRobots) ? xRobots.join(',') : xRobots || '';
+  const metaRobots =
+    (html.match(
+      /<meta[^>]+name=["']robots["'][^>]*content=["']([^"']*)["']/i
+    ) || [])[1] || '';
+  const noindex = /noindex/i.test(xRobotsStr) || /noindex/i.test(metaRobots);
+  checks.push({
+    id: 'seo_indexable',
+    name: 'Indexability',
+    status: noindex ? 'FAIL' : 'PASS',
+    value: noindex ? 'noindex set' : 'indexable',
+    finding: noindex
+      ? 'Page is marked noindex - it will be excluded from search results.'
+      : 'Page is indexable by search engines.',
+    explanation:
+      'A stray noindex (in a robots meta or X-Robots-Tag header) silently removes the page from Google entirely.',
+    recommendation:
+      'Remove noindex from public pages; keep it only on pages you intend to hide.',
+  });
+
+  const favicon = /<link[^>]+rel=["'][^"']*icon[^"']*["']/i.test(html);
+  checks.push({
+    id: 'seo_favicon',
+    name: 'Favicon',
+    status: favicon ? 'PASS' : 'WARN',
+    value: favicon ? 'present' : null,
+    finding: favicon ? 'Favicon declared.' : 'No favicon link found.',
+    explanation:
+      'A favicon reinforces brand recognition in tabs, bookmarks and increasingly in mobile search results.',
+    recommendation: 'Add a rel="icon" link to your favicon.',
+  });
+
+  const imgs = html.match(/<img\b[^>]*>/gi) || [];
+  const missingAlt = imgs.filter((t) => !/\balt=/i.test(t)).length;
+  if (imgs.length > 0) {
+    checks.push({
+      id: 'seo_img_alt',
+      name: 'Image Alt Text',
+      status: missingAlt === 0 ? 'PASS' : 'WARN',
+      value: `${missingAlt}/${imgs.length} missing alt`,
+      finding:
+        missingAlt === 0
+          ? 'All sampled images have alt text.'
+          : `${missingAlt} of ${imgs.length} images lack alt text.`,
+      explanation:
+        'Alt text makes images accessible to screen readers and lets them rank in image search.',
+      recommendation:
+        'Give every meaningful image a concise, descriptive alt attribute.',
+    });
+  }
+
+  return checks;
+}

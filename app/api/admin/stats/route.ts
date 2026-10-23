@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db';
 import QueryLog from '@/models/QueryLog';
 import Transaction from '@/models/Transaction';
+import { connection } from 'next/server';
 
 export async function GET() {
+  await connection();
   await connectToDatabase();
 
   const now = new Date();

@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 import './globals.css';
+import ThemeToggle from './components/ThemeToggle';
 
-const APP_NAME = 'CyberAir';
+const APP_NAME = 'cyberAir';
 const APP_DEFAULT_TITLE =
-  'CyberAir - Security Header Auditor & Risk Analysis';
-const APP_TITLE_TEMPLATE = '%s | CyberAir';
+  'cyberAir - Security Header Auditor & Risk Analysis';
+const APP_TITLE_TEMPLATE = '%s | cyberAir';
 const APP_DESCRIPTION =
   'Analyze web application headers instantly for vulnerabilities like CSP, HSTS, and X-Frame-Options with plain-English threat breakdowns and exploit scenarios.';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cyberAir.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cyberair.app';
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -86,21 +87,17 @@ export default function RootLayout({
     description: APP_DESCRIPTION,
     applicationCategory: 'SecurityApplication',
     operatingSystem: 'All',
-    author: {
-      '@type': 'Person',
-      name: 'Samuel Onwodi',
-    },
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-    },
+    author: { '@type': 'Person', name: 'Samuel Onwodi' },
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   };
 
+  // Pre-paint theme resolution to avoid a flash of the wrong palette.
+  const themeScript = `(function(){try{var t=localStorage.getItem('cyberair_theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
+
   return (
-    <html lang="en" className="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
-        {/* Structured Data / JSON-LD for Google Rich Results */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -108,7 +105,8 @@ export default function RootLayout({
       </head>
       <body className="bg-slate-950 text-slate-100 font-mono antialiased min-h-screen selection:bg-cyan-500 selection:text-slate-950">
         {children}
-        <Toaster position="top-right" richColors theme="dark" />
+        <ThemeToggle />
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

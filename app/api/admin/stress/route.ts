@@ -6,13 +6,16 @@ import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { validateAndSanitizeUrl } from '@/lib/validateUrl';
 
+export const maxDuration = 60;
+
 const SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET || 'super-secret-key-change-this'
 );
 
-// Configure high-capacity agents to prevent socket exhaustion during load testing
-const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 500 });
-const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 500 });
+// Bounded connection pools. Caps are intentional: this is an authorized
+// resilience/load test against a target the operator owns, never a flood tool.
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 120 });
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 120 });
 
 export async function POST(req: Request) {
   try {
@@ -32,7 +35,20 @@ export async function POST(req: Request) {
       targetUrl,
       requestsCount = 150,
       concurrency = 50,
+      authorized = false,
     } = await req.json();
+
+    // Explicit authorization gate — the operator must confirm they own or are
+    // contracted to test the target before any load is generated.
+    if (authorized !== true) {
+      return NextResponse.json(
+        {
+          error:
+            'Authorization required: confirm you own or are explicitly permitted to load-test this target.',
+        },
+        { status: 403 }
+      );
+    }
 
     const sanitizedUrl = validateAndSanitizeUrl(targetUrl);
     if (!sanitizedUrl) {
@@ -72,7 +88,7 @@ export async function POST(req: Request) {
             timeout: 4000,
             agent,
             headers: {
-              'User-Agent': 'CyberSentinel-HeavyLoadTester/3.0',
+              'User-Agent': 'cyberAir-ResilienceTester/1.0',
               'Cache-Control': 'no-cache, no-store',
               Pragma: 'no-cache',
               Connection: 'keep-alive',
